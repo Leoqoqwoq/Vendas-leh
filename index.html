@@ -53,6 +53,10 @@ nav button.on{background:var(--grad);color:#fff;box-shadow:0 4px 14px rgba(255,9
 .th{width:68px;height:68px;border-radius:18px;object-fit:cover;background:var(--b);flex:none;display:flex;align-items:center;justify-content:center;font-size:1.7rem;border:1px solid var(--b)}
 .pr .in{flex:1;min-width:0}.qt{display:flex;gap:8px}.qt button{width:34px;height:34px;padding:0;border:1px solid var(--b);background:transparent;font-size:1.1rem;border-radius:50%}
 .pv{width:130px;height:130px;border-radius:20px;object-fit:cover;background:var(--b);display:none;margin:0 auto 12px}
+.item-row{border:1px solid var(--b);border-radius:16px;padding:12px;margin-bottom:10px;background:var(--in)}
+.i-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-weight:600;font-size:.85rem}
+#add-item{width:100%;margin-top:0;background:transparent;color:var(--p);border:1px dashed var(--p)}
+.totline{font-weight:700;text-align:right;margin:8px 2px 0}
 </style></head><body>
 <div class="w">
 <h1>✦ Minhas Vendas</h1><div class="sub">Vendas &amp; Estoque</div>
@@ -65,10 +69,7 @@ nav button.on{background:var(--grad);color:#fff;box-shadow:0 4px 14px rgba(255,9
 <div class="md" id="md" hidden><div class="sh"><h2 id="mt">Nova venda</h2><div class="g">
 <div class="f"><label>Nome da cliente</label><input id="f-cli" list="cls" autocomplete="off"></div>
 <div class="f"><label>WhatsApp da cliente (opcional)</label><input id="f-tel" type="tel" placeholder="(11) 99999-9999"></div>
-<div><label>Código do produto</label><input id="f-cod" list="cds"></div>
-<div><label>Valor (R$)</label><input id="f-val" type="number" inputmode="decimal" step="0.01" min="0"></div>
-<div class="f"><label>Descrição (opcional)</label><input id="f-des"></div>
-<div><label>Quantidade</label><input id="f-qtd" type="number" inputmode="numeric" min="1"></div>
+<div class="f"><label>Produtos desta venda</label><div id="itens"></div><button type="button" class="pri" id="add-item">+ Adicionar outro código</button><div class="totline" id="vtot"></div></div>
 <div><label>Data</label><input id="f-dt" type="date"></div>
 <div><label>Pagamento</label><select id="f-pg"><option>Pix</option><option>Dinheiro</option><option>Cartão</option><option>Fiado</option></select></div>
 <div><label>Situação</label><select id="f-ok"><option value="1">Pago</option><option value="0">Pendente</option></select></div>
@@ -137,11 +138,14 @@ function render(){TL={};PN={};[...S].reverse().forEach(v=>{if(v.tel)TL[v.cliente
 $("v").innerHTML=({i:vI,v:vV,e:vE,c:vC,r:vR})[tab]();if(tab==="v")lst();
 document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.t===tab));
 const op=a=>[...new Set(a)].map(c=>`<option value="${esc(c)}">`).join("");$("cls").innerHTML=op(S.map(v=>v.cliente));$("cds").innerHTML=op(PR.map(p=>p.codigo).concat(S.map(v=>v.codigo)))}
+function renum(){const rows=[...document.querySelectorAll(".item-row")];rows.forEach((r,i)=>{r.querySelector(".i-head span").textContent="Código "+(i+1);r.querySelector(".i-rm").hidden=rows.length<2})}
+function soma(){let t=0;document.querySelectorAll(".item-row").forEach(row=>{const val=parseFloat(String(row.querySelector(".i-val").value).replace(",",".")),qt=Math.max(1,parseInt(row.querySelector(".i-qtd").value)||1);if(!isNaN(val))t+=val*qt});$("vtot").textContent=t?"Total: "+brl(t):""}
+function addItem(o={}){const d=document.createElement("div");d.className="item-row";d.innerHTML=`<div class="i-head"><span>Código</span><button type="button" class="ln dl i-rm">Remover</button></div><div class="g"><div><label>Código do produto</label><input class="i-cod" list="cds" value="${esc(o.codigo||"")}"></div><div><label>Quantidade</label><input class="i-qtd" type="number" inputmode="numeric" min="1" value="${o.qtd||1}"></div><div><label>Valor (R$)</label><input class="i-val" type="number" inputmode="decimal" step="0.01" min="0" value="${o.valor??""}"></div><div class="f"><label>Descrição (opcional)</label><input class="i-des" value="${esc(o.produto||"")}"></div></div>`;$("itens").appendChild(d);renum();soma()}
 function openF(v){ed=v?v.id:null;$("mt").textContent=v?"Editar venda":"Nova venda";const o=v||{cliente:"",tel:"",codigo:"",produto:"",valor:"",qtd:1,data:hoje(),pgto:"Pix",pago:true};
-$("f-cli").value=o.cliente;$("f-tel").value=o.tel||"";$("f-cod").value=o.codigo;$("f-des").value=o.produto||"";$("f-val").value=o.valor;$("f-qtd").value=o.qtd;$("f-dt").value=o.data;$("f-pg").value=o.pgto;$("f-ok").value=o.pago?"1":"0";$("md").hidden=false}
+$("f-cli").value=o.cliente;$("f-tel").value=o.tel||"";$("f-dt").value=o.data;$("f-pg").value=o.pgto;$("f-ok").value=o.pago?"1":"0";$("itens").innerHTML="";addItem(o);$("add-item").hidden=!!v;$("md").hidden=false}
 function csv(){const[r]=rng(P),L=S.filter(v=>inR(v,r)).sort((a,b)=>a.data.localeCompare(b.data)),c=x=>'"'+String(x??"").replace(/"/g,'""')+'"',n=x=>String(Math.round(x*100)/100).replace(".",",");
 dl("vendas-"+P+".csv","\ufeffData;Cliente;Telefone;Código;Produto;Qtd;Valor;Total;Pagamento;Situação\n"+L.map(v=>[fd(v.data),v.cliente,v.tel||"",v.codigo,v.produto||"",v.qtd,n(v.valor),n(tot(v)),v.pgto,v.pago?"Pago":"Pendente"].map(c).join(";")).join("\n"),"text/csv")}
-document.addEventListener("click",e=>{const t=e.target.closest("[data-a],[data-p],[data-t]");if(!t)return;const d=t.dataset;
+document.addEventListener("click",e=>{if(e.target.classList.contains("i-rm")){const row=e.target.closest(".item-row");if(document.querySelectorAll(".item-row").length>1){row.remove();renum();soma()}return}const t=e.target.closest("[data-a],[data-p],[data-t]");if(!t)return;const d=t.dataset;
 if(d.t){tab=d.t;render();scrollTo(0,0);return}
 if(d.p){P=d.p;render();return}
 const pp=PR.find(x=>x.id==d.i);
@@ -163,15 +167,21 @@ if(d.a==="bk")dl("vendas-backup-"+hoje()+".json",JSON.stringify(S),"application/
 if(d.a==="rs")$("fl").click();
 if(d.a==="so")signOut(auth);
 if(d.a==="new")openF()});
-document.addEventListener("input",e=>{if(e.target.id==="q"){q=e.target.value;lst()}if(e.target.id==="pq"){pq=e.target.value;$("pl").innerHTML=plist()}});
+document.addEventListener("input",e=>{if(e.target.id==="q"){q=e.target.value;lst()}if(e.target.id==="pq"){pq=e.target.value;$("pl").innerHTML=plist()}if(e.target.classList.contains("i-val")||e.target.classList.contains("i-qtd"))soma()});
 document.addEventListener("change",e=>{const t=e.target;
 if(t.id==="fs"){fs=t.value;lst()}
-if(t.id==="f-cod"&&!$("f-des").value&&!$("f-val").value){const p=prod(t.value),s=S.find(v=>v.codigo.toLowerCase()===t.value.trim().toLowerCase());if(p){$("f-des").value=p.nome;$("f-val").value=p.preco}else if(s){$("f-des").value=s.produto||"";$("f-val").value=s.valor}}
+if(t.classList.contains("i-cod")){const row=t.closest(".item-row"),des=row.querySelector(".i-des"),val=row.querySelector(".i-val");if(!des.value&&!val.value){const p=prod(t.value),s=S.find(v=>v.codigo.toLowerCase()===t.value.trim().toLowerCase());if(p){des.value=p.nome;val.value=p.preco}else if(s){des.value=s.produto||"";val.value=s.valor}}soma()}
+if(t.classList.contains("i-val")||t.classList.contains("i-qtd"))soma()
 if(t.id==="f-cli"&&!$("f-tel").value&&TL[t.value])$("f-tel").value=TL[t.value];
 if(t.id==="fl"){const f=t.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d))throw 0;if(confirm("Adicionar "+d.length+" vendas do backup?"))d.forEach(put)}catch(x){alert("Arquivo inválido.")}t.value=""};r.readAsText(f)}});
-$("sv").onclick=()=>{const g=i=>$(i).value.trim(),c=g("f-cli"),k=g("f-cod"),val=parseFloat(g("f-val").replace(",","."));
-if(!c||!k||isNaN(val)||val<0){alert("Preencha cliente, código e valor.");return}
-const qt=Math.max(1,parseInt(g("f-qtd"))||1),old=ed&&S.find(x=>x.id===ed),pr=prod(k);if(pr&&!old&&qt>pr.qtd&&!confirm("Só há "+pr.qtd+" em estoque desse produto. Continuar mesmo assim?"))return;if(old)adj(old.codigo,old.qtd);adj(k,-qt);put({id:ed||Date.now(),cliente:c,tel:g("f-tel"),codigo:k,produto:g("f-des"),valor:val,qtd:qt,data:g("f-dt")||hoje(),pgto:$("f-pg").value,pago:$("f-ok").value==="1"});$("md").hidden=true};
+$("add-item").onclick=()=>addItem();
+$("sv").onclick=()=>{const g=i=>$(i).value.trim(),c=g("f-cli");
+const items=[...document.querySelectorAll(".item-row")].map(row=>({k:row.querySelector(".i-cod").value.trim(),val:parseFloat(String(row.querySelector(".i-val").value).replace(",",".")),qt:Math.max(1,parseInt(row.querySelector(".i-qtd").value)||1),produto:row.querySelector(".i-des").value.trim()}));
+if(!c||!items.length||items.some(it=>!it.k||isNaN(it.val)||it.val<0)){alert("Preencha cliente, código e valor de cada produto.");return}
+const old=ed&&S.find(x=>x.id===ed),by={};items.forEach(it=>{const key=it.k.toLowerCase();(by[key]=by[key]||{k:it.k,qt:0}).qt+=it.qt});
+for(const key of Object.keys(by)){const pr=prod(by[key].k);if(!pr)continue;let disp=pr.qtd;if(old&&old.codigo.toLowerCase()===key)disp+=old.qtd;if(by[key].qt>disp&&!confirm("Só há "+disp+" em estoque do código "+by[key].k+". Continuar mesmo assim?"))return}
+if(old)adj(old.codigo,old.qtd);const base=Date.now();
+items.forEach((it,i)=>{adj(it.k,-it.qt);put({id:i===0&&ed?ed:base+i,cliente:c,tel:g("f-tel"),codigo:it.k,produto:it.produto,valor:it.val,qtd:it.qt,data:g("f-dt")||hoje(),pgto:$("f-pg").value,pago:$("f-ok").value==="1"})});$("md").hidden=true};
 $("cx").onclick=()=>$("md").hidden=true;
 const num=x=>{x=String(x||"").trim();return parseFloat(x.includes(",")?x.replace(/\./g,"").replace(",","."):x)};
 $("pci").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{e.target.value="";impCSV(r.result)};r.readAsText(f)};
