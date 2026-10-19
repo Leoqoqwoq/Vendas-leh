@@ -47,6 +47,10 @@ button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:11px 14px
 <div class="w">
 <h1>🌸 Controle de Vendas</h1>
 
+<div class="card" id="login"><h2>Entrar</h2><label>E-mail</label><input id="em" type="email" autocomplete="username"><label style="margin-top:8px">Senha</label><input id="sn" type="password" autocomplete="current-password"><p id="lerr" class="mut" style="color:var(--bad)"></p><button class="pri" id="lg">Entrar</button></div>
+
+<div id="app" hidden>
+
 <div class="stats">
 <div class="st"><small>Total vendido</small><b id="sT">R$ 0,00</b></div>
 <div class="st"><small>Recebido</small><b id="sR" class="ok">R$ 0,00</b></div>
@@ -77,14 +81,21 @@ button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:11px 14px
 </div>
 <div id="pc" class="card" hidden><h2>Clientes (quem mais compra)</h2><div id="lc"></div></div>
 <div id="pm" class="card" hidden><h2>Vendas por mês</h2><div id="lm"></div></div>
+<div class="card"><h2>💾 Backup</h2><p class="mut" id="bk"></p><div class="bar"><button class="pri" style="margin:0" id="exp">Salvar backup</button><button class="pri" style="margin:0;background:var(--card);color:var(--pri);border:1px solid var(--pri)" id="imp">Restaurar</button></div><input type="file" id="fl" accept=".json,application/json" hidden><button class="pri" style="background:transparent;color:var(--mut);border:1px solid var(--bd)" id="so">Sair da conta</button></div>
+</div>
 </div>
 
-<script>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {initializeFirestore,persistentLocalCache,collection,doc,setDoc,updateDoc,deleteDoc,onSnapshot} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 const $=id=>document.getElementById(id);
-const K="vendas-lingerie-v1";
-let S=[];
-try{S=JSON.parse(localStorage.getItem(K)||"[]")}catch(e){S=[]}
-const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+const app=initializeApp({apiKey:"AIzaSyD0caFJXhtPW15wnKu1aKUk8AD0mIW1Lck",authDomain:"vendas-leh.firebaseapp.com",projectId:"vendas-leh",storageBucket:"vendas-leh.firebasestorage.app",messagingSenderId:"1054349259797",appId:"1:1054349259797:web:9f8069331de4cef176ca1c"});
+const auth=getAuth(app);
+const fdb=initializeFirestore(app,{localCache:persistentLocalCache()});
+let S=[],uid=null,unsub=null,mig=false;
+const ref=id=>doc(fdb,"users",uid,"vendas",String(id));
+const put=v=>setDoc(ref(v.id),v).catch(e=>alert("Erro ao salvar: "+e.message));
 const brl=n=>n.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const hoje=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
@@ -95,8 +106,7 @@ $("dt").value=hoje();
 $("add").onclick=()=>{
   const cliente=$("cli").value.trim(),codigo=$("cod").value.trim(),valor=parseFloat($("val").value);
   if(!cliente||!codigo||!(valor>=0)||isNaN(valor)){alert("Preencha cliente, código e valor.");return}
-  S.unshift({id:Date.now(),cliente,codigo,valor,produto:$("des").value.trim(),qtd:Math.max(1,parseInt($("qtd").value)||1),data:$("dt").value||hoje(),pgto:$("pg").value,pago:$("ok").value==="1"});
-  save();
+  put({id:Date.now(),cliente,codigo,valor,produto:$("des").value.trim(),qtd:Math.max(1,parseInt($("qtd").value)||1),data:$("dt").value||hoje(),pgto:$("pg").value,pago:$("ok").value==="1"});
   ["cli","cod","val","des"].forEach(i=>$(i).value="");$("qtd").value=1;$("dt").value=hoje();
   render();
 };
@@ -120,14 +130,30 @@ function render(){
   const ME=Object.entries(M).sort((a,b)=>b[0].localeCompare(a[0]));
   $("lm").innerHTML=ME.length?ME.map(([k,t])=>`<div class="it r"><b>${k.slice(5)}/${k.slice(0,4)}</b><b>${brl(t)}</b></div>`).join(""):`<div class="empty">Sem vendas ainda.</div>`;
 }
-window.tg=id=>{const v=S.find(x=>x.id===id);if(v){v.pago=!v.pago;save();render()}};
-window.rm=id=>{if(confirm("Excluir esta venda?")){S=S.filter(x=>x.id!==id);save();render()}};
+window.tg=id=>{const v=S.find(x=>x.id===id);if(v)updateDoc(ref(id),{pago:!v.pago})};
+window.rm=id=>{if(confirm("Excluir esta venda?"))deleteDoc(ref(id))};
 $("q").oninput=render;$("fs").onchange=render;
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".tabs button").forEach(x=>x.classList.toggle("on",x===b));
   $("pv").hidden=b.dataset.t!=="v";$("pc").hidden=b.dataset.t!=="c";$("pm").hidden=b.dataset.t!=="m";
 });
+$("exp").onclick=()=>{const b=new Blob([JSON.stringify(S)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="vendas-backup-"+hoje()+".json";document.body.appendChild(a);a.click();a.remove();try{localStorage.setItem("vendas-ultimo-backup",hoje())}catch(e){}info()};
+$("imp").onclick=()=>$("fl").click();
+$("fl").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d))throw 0;if(confirm("Adicionar "+d.length+" vendas do backup?")){d.forEach(put)}}catch(x){alert("Arquivo inválido.")}e.target.value=""};r.readAsText(f)};
+function info(){let d="";try{d=localStorage.getItem("vendas-ultimo-backup")||""}catch(e){}$("bk").textContent=d?"Último backup: "+fd(d):"Você ainda não fez backup. Salve uma cópia de vez em quando."}
+info();
 render();
+const err=m=>$("lerr").textContent=m||"";
+$("lg").onclick=async()=>{err();try{await signInWithEmailAndPassword(auth,$("em").value.trim(),$("sn").value)}catch(e){err("E-mail ou senha incorretos.")}};
+$("so").onclick=()=>signOut(auth);
+function migra(){if(mig)return;mig=true;let L=[];try{L=JSON.parse(localStorage.getItem("vendas-lingerie-v1")||"[]")}catch(e){}
+if(L.length&&confirm("Encontrei "+L.length+" vendas salvas neste aparelho. Enviar para a nuvem?")){Promise.all(L.map(put)).then(()=>{try{localStorage.removeItem("vendas-lingerie-v1")}catch(e){}})}}
+onAuthStateChanged(auth,u=>{
+  if(unsub){unsub();unsub=null}
+  if(!u){uid=null;S=[];$("app").hidden=true;$("login").hidden=false;return}
+  uid=u.uid;$("login").hidden=true;$("app").hidden=false;
+  unsub=onSnapshot(collection(fdb,"users",uid,"vendas"),s=>{S=s.docs.map(d=>d.data()).sort((a,b)=>b.id-a.id);render();migra()},e=>alert("Erro ao carregar: "+e.message));
+});
 </script>
 </body>
 </html>
