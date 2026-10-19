@@ -74,7 +74,7 @@ nav button.on{background:var(--grad);color:#fff;box-shadow:0 4px 14px rgba(255,9
 <div><label>Situação</label><select id="f-ok"><option value="1">Pago</option><option value="0">Pendente</option></select></div>
 </div><button class="pri" id="sv">Salvar</button><button class="pri" style="background:transparent;color:var(--m);margin-top:6px" id="cx">Cancelar</button></div></div>
 <div class="md" id="pm" hidden><div class="sh"><h2 id="pt">Novo produto</h2><img id="pv" class="pv" alt=""><button class="pri" style="background:transparent;color:var(--p);border:1px solid var(--p);margin-top:0" id="ph">📷 Tirar ou escolher foto</button><input type="file" id="pfi" accept="image/*" hidden><div class="g" style="margin-top:10px"><div><label>Código</label><input id="p-cod"></div><div><label>Preço (R$)</label><input id="p-pre" type="number" inputmode="decimal" step="0.01" min="0"></div><div class="f"><label>Nome do produto</label><input id="p-nom"></div><div class="f"><label>Quantidade em estoque</label><input id="p-qtd" type="number" inputmode="numeric" min="0"></div></div><button class="pri" id="ps">Salvar produto</button><button class="pri" style="background:transparent;color:var(--m);margin-top:6px" id="pc">Cancelar</button></div></div>
-<datalist id="cls"></datalist><datalist id="cds"></datalist><input type="file" id="fl" accept=".json,application/json" hidden>
+<datalist id="cls"></datalist><datalist id="cds"></datalist><input type="file" id="pci" accept=".csv,text/csv,text/plain" hidden><input type="file" id="fl" accept=".json,application/json" hidden>
 <script type="module">
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -90,6 +90,7 @@ const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&g
 const iso=d=>new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10);
 const hoje=()=>iso(new Date()),fd=d=>d.split("-").reverse().join("/"),tot=v=>v.valor*v.qtd,sum=L=>L.reduce((a,v)=>a+tot(v),0);
 const D=(y,m,d)=>new Date(y,m,d);
+const COM=40,com=v=>v*COM/100;
 function rng(p){const n=new Date(),y=n.getFullYear(),m=n.getMonth(),d=n.getDate();
 if(p==="hoje")return[[iso(n),iso(n)],[iso(D(y,m,d-1)),iso(D(y,m,d-1))]];
 if(p==="7d")return[[iso(D(y,m,d-6)),iso(n)],[iso(D(y,m,d-13)),iso(D(y,m,d-7))]];
@@ -108,7 +109,7 @@ return`<div class="bars">${ks.map((k,i)=>`<div class="bc"><i style="height:${(o[
 function vI(){const[r,pr]=rng(P),L=S.filter(v=>inR(v,r)),T=sum(L),R=sum(L.filter(v=>v.pago));
 let dd="";if(pr){const t0=sum(S.filter(v=>inR(v,pr)));if(t0)dd=`<span class="d ${T>=t0?"up":"dn"}">${T>=t0?"▲":"▼"} ${Math.abs(Math.round((T-t0)/t0*100))}% vs período anterior</span>`}
 const mt=sum(S.filter(v=>v.data.startsWith(hoje().slice(0,7)))),pc=M?Math.min(100,Math.round(mt/M*100)):0;
-return chips()+`<div class="card"><small>Faturamento</small><div class="big">${brl(T)}</div>${dd}</div>
+return chips()+`<div class="card"><small>Faturamento</small><div class="big">${brl(T)}</div>${dd}<small style="margin-top:6px">Sua comissão (${COM}%): <b class="ok">${brl(com(T))}</b></small></div>
 <div class="kp"><div class="card"><small>Recebido</small><b class="ok">${brl(R)}</b></div><div class="card"><small>A receber</small><b class="pn">${brl(T-R)}</b></div><div class="card"><small>Vendas</small><b>${L.length}</b></div><div class="card"><small>Ticket médio</small><b>${brl(L.length?T/L.length:0)}</b></div></div>
 <div class="card"><div class="r"><b>Meta do mês</b><button class="ln" data-a="meta">${M?"Editar":"Definir"}</button></div>${M?`<div class="pg"><i style="width:${pc}%"></i></div><small>${brl(mt)} de ${brl(M)} · ${pc}%</small>`:"<small>Defina uma meta para acompanhar o progresso.</small>"}</div>
 <div class="card"><b>Vendas no período</b>${bars(L)}</div>
@@ -129,7 +130,7 @@ const comp=f=>new Promise(r=>{const i=new Image(),u=URL.createObjectURL(f);i.onl
 const pfil=()=>{const k=pq.toLowerCase();return PR.filter(p=>(p.nome+p.codigo).toLowerCase().includes(k)).sort((a,b)=>a.nome.localeCompare(b.nome))};
 const plist=()=>pfil().map(p=>`<div class="pr">${p.foto?`<img class="th" src="${p.foto}" alt="">`:'<div class="th">👙</div>'}<div class="in"><b>${esc(p.nome)}</b><small>${esc(p.codigo)} · ${brl(p.preco)}</small><span class="tg ${p.qtd<=0?"dn":p.qtd<=2?"pn":"ok"}">${p.qtd<=0?"Esgotado":p.qtd+" un."}</span></div><div class="rt"><div class="qt"><button data-a="pm" data-i="${p.id}">−</button><button data-a="pp" data-i="${p.id}">+</button></div><button class="ln" data-a="pe" data-i="${p.id}">Editar</button><button class="ln dl" data-a="px" data-i="${p.id}">Excluir</button></div></div>`).join("")||'<div class="em">Nenhum produto. Toque em + Produto.</div>';
 function vE(){const un=PR.reduce((a,p)=>a+p.qtd,0),vl=PR.reduce((a,p)=>a+p.qtd*p.preco,0);
-return`<div class="kp"><div class="card"><small>Peças em estoque</small><b>${un}</b></div><div class="card"><small>Valor em estoque</small><b>${brl(vl)}</b></div></div><div class="bar"><input id="pq" placeholder="Buscar produto" value="${esc(pq)}"><button class="pri" style="width:auto;margin:0;padding:0 14px" data-a="pn">+ Produto</button></div><div class="card" id="pl">${plist()}</div>`}
+return`<div class="kp"><div class="card"><small>Peças em estoque</small><b>${un}</b></div><div class="card"><small>Valor em estoque</small><b>${brl(vl)}</b></div></div><div class="card"><small>Se vender tudo, sua comissão (${COM}%)</small><div class="big" style="font-size:1.7rem">${brl(com(vl))}</div></div><div class="bar"><input id="pq" placeholder="Buscar produto" value="${esc(pq)}"><button class="pri" style="width:auto;margin:0;padding:0 14px" data-a="pn">+ Produto</button></div><div style="margin:-6px 0 12px"><button class="ln" data-a="imp">📥 Importar planilha (CSV)</button></div><div class="card" id="pl">${plist()}</div>`}
 const shp=()=>{$("pv").src=pf;$("pv").style.display=pf?"block":"none"};
 function openP(p){ed2=p?p.id:null;pf=p?p.foto||"":"";$("pt").textContent=p?"Editar produto":"Novo produto";$("p-cod").value=p?p.codigo:"";$("p-nom").value=p?p.nome:"";$("p-pre").value=p?p.preco:"";$("p-qtd").value=p?p.qtd:1;shp();$("pm").hidden=false}
 function render(){TL={};PN={};[...S].reverse().forEach(v=>{if(v.tel)TL[v.cliente]=v.tel;if(v.produto)PN[v.codigo]=v.produto});
@@ -145,6 +146,7 @@ if(d.t){tab=d.t;render();scrollTo(0,0);return}
 if(d.p){P=d.p;render();return}
 const pp=PR.find(x=>x.id==d.i);
 if(d.a==="pn")openP();
+if(d.a==="imp")$("pci").click();
 if(d.a==="pe"&&pp)openP(pp);
 if(d.a==="px"&&pp&&confirm("Excluir este produto?"))deleteDoc(pref(pp.id));
 if(d.a==="pm"&&pp&&pp.qtd>0)updateDoc(pref(pp.id),{qtd:increment(-1)});
@@ -171,6 +173,17 @@ $("sv").onclick=()=>{const g=i=>$(i).value.trim(),c=g("f-cli"),k=g("f-cod"),val=
 if(!c||!k||isNaN(val)||val<0){alert("Preencha cliente, código e valor.");return}
 const qt=Math.max(1,parseInt(g("f-qtd"))||1),old=ed&&S.find(x=>x.id===ed),pr=prod(k);if(pr&&!old&&qt>pr.qtd&&!confirm("Só há "+pr.qtd+" em estoque desse produto. Continuar mesmo assim?"))return;if(old)adj(old.codigo,old.qtd);adj(k,-qt);put({id:ed||Date.now(),cliente:c,tel:g("f-tel"),codigo:k,produto:g("f-des"),valor:val,qtd:qt,data:g("f-dt")||hoje(),pgto:$("f-pg").value,pago:$("f-ok").value==="1"});$("md").hidden=true};
 $("cx").onclick=()=>$("md").hidden=true;
+const num=x=>{x=String(x||"").trim();return parseFloat(x.includes(",")?x.replace(/\./g,"").replace(",","."):x)};
+$("pci").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{e.target.value="";impCSV(r.result)};r.readAsText(f)};
+function impCSV(txt){const L=txt.replace(/^\ufeff/,"").split(/\r?\n/).filter(x=>x.trim()),sep=L[0].includes(";")?";":",";
+const R=L.map(l=>l.split(sep).map(c=>c.replace(/^"|"$/g,"").trim())).filter(c=>c[0]&&!isNaN(num(c[2]))&&!isNaN(num(c[3])));
+if(!R.length){alert("Não encontrei produtos no arquivo. Use as colunas: codigo;nome;preco;qtd");return}
+const nv=R.filter(c=>!prod(c[0])).length;
+if(!confirm("Importar "+R.length+" produtos? "+nv+" novos; nos "+(R.length-nv)+" já cadastrados a quantidade será somada."))return;
+R.forEach((c,i)=>{const q=Math.max(0,parseInt(c[3])||0),o=prod(c[0]);
+if(o)updateDoc(pref(o.id),{qtd:increment(q)});
+else{const id=Date.now()+i;setDoc(pref(id),{id,codigo:c[0],nome:c[1]||c[0],preco:num(c[2]),qtd:q,foto:""}).catch(x=>alert("Erro ao salvar: "+x.message))}});
+alert("Importação enviada! Os produtos aparecem em instantes.")}
 $("pc").onclick=()=>$("pm").hidden=true;
 $("ph").onclick=()=>$("pfi").click();
 $("pfi").onchange=async e=>{const f=e.target.files[0];if(f){pf=await comp(f);shp()}e.target.value=""};
