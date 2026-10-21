@@ -1,4 +1,4 @@
-const CACHE = "vendas-leh-v2";
+const CACHE = "vendas-leh-v3";
 const ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", e => {

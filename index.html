@@ -86,7 +86,7 @@ nav button.on span{filter:none;transform:translateY(-1px) scale(1.06)}
 .md{position:fixed;inset:0;background:rgba(35,10,45,.5);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);display:flex;align-items:flex-end;z-index:20;animation:fadeIn .2s ease}
 .md[hidden]{display:none}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.sh{background:var(--bg);width:100%;max-width:640px;margin:0 auto;max-height:96%;min-height:72%;overflow:auto;border-radius:28px 28px 0 0;border-top:1px solid var(--b);padding:12px 16px cald(24px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(155,107,255,.2);animation:sheetUp .38s var(--ease)}
+.sh{background:var(--bg);width:100%;max-width:640px;margin:0 auto;max-height:96%;min-height:72%;overflow:auto;border-radius:28px 28px 0 0;border-top:1px solid var(--b);padding:12px 16px calc(24px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(155,107,255,.2);animation:sheetUp .38s var(--ease)}
 .sh::before{content:"";display:block;width:42px;height:4px;border-radius:4px;background:var(--b);margin:4px auto 16px}
 @keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
 .g{display:grid;grid-template-columns:1fr 1fr;gap:12px}.g .f{grid-column:1/-1}
@@ -215,7 +215,7 @@ function bars(L){let ks=[],f;if(P==="ano"||P==="tudo"){f=v=>v.data.slice(0,7);ks
 const o={};L.forEach(v=>o[f(v)]=(o[f(v)]||0)+tot(v));const mx=Math.max(1,...ks.map(k=>o[k]||0)),st=Math.ceil(ks.length/7)||1;
 return`<div class="bars">${ks.map((k,i)=>`<div class="bc"><i style="height:${(o[k]||0)/mx*88}%" title="${brl(o[k]||0)}"></i><span>${i%st?"":(k.length>7?k.slice(8):k.slice(5))}</span></div>`).join("")}</div>`}
 function bannerInstalar(){return defP?`<div class="card ban okb" id="inst"><div class="r"><div><b>Instalar no celular</b><small>Abre como app, sem barra do navegador.</small></div><button class="pri" style="width:auto;margin:0;padding:10px 14px" data-a="inst">Instalar</button></div></div>`:""}
-function bannerBackup(){const d=diasSemBackup();if(d<7)return"";return`<div class="card ban"><div class="r"><div><b>Backup recomendado</b><small>${d>=999?"Ainda não há backup neste aparelio.":"Faz "+d+" dia(s) desde o último backup."}</small></div><button class="ln" data-a="bk">Salvar agora</button></div></div>`}
+function bannerBackup(){const d=diasSemBackup();if(d<7)return"";return`<div class="card ban"><div class="r"><div><b>Backup recomendado</b><small>${d>=999?"Ainda não há backup neste aparelho.":"Faz "+d+" dia(s) desde o último backup."}</small></div><button class="ln" data-a="bk">Salvar agora</button></div></div>`}
 function blocoAtrasados(){const L=fiadosAtrasados();if(!L.length)return"";return`<details class="card ban det" open><summary><span>Fiados atrasados (${L.length})</span><span class="chev">▾</span></summary><div class="body">${L.slice(0,8).map(g=>{const f=falG(g),vc=venceG(g),dias=vc?diasEntre(vc,hoje()):diasAtraso(g.data),id=g.items[0].id;
 return`<div class="it"><div class="r"><div><b>${esc(g.cliente)}</b><small>${vc?"Venceu "+fd(vc):"Desde "+fd(g.data)} · ${dias}d · falta ${brl(f)}</small></div><b class="pn">${brl(f)}</b></div><div class="ac"><button data-a="rp" data-i="${id}">Receber</button>${TL[g.cliente]?`<button data-a="wa" data-i="${id}">Cobrar</button>`:""}<button data-a="ed" data-i="${id}">Ver</button></div></div>`}).join("")}${L.length>8?`<small>+ ${L.length-8} outro(s) em Vendas</small>`:""}</div></details>`}
 function blocoRecebimentos(){const L=recebimentosSemana(),totR=L.reduce((a,x)=>a+x.v,0);if(!L.length)return`<div class="card"><b>Recebimentos (7 dias)</b><div class="em"><span class="emo">💸</span>Nenhum recebimento nesta semana</div></div>`;
@@ -243,7 +243,7 @@ return chips()+bannerBackup()+`<div class="card"><b>🏆 Produtos mais vendidos<
 <div class="card"><b>⏳ Clientes devendo (geral)</b>${rows(grp(S.filter(v=>falta(v)>0),v=>v.cliente),g=>g.k+" · deve "+brl(g.p))}</div>
 <div class="card"><b>Ferramentas</b><div class="tl"><button data-a="csv">Exportar planilha (CSV)</button><button data-a="bk">Salvar backup</button><button data-a="rs">Restaurar backup</button><button data-a="so">Sair da conta</button></div></div>`}
 const prod=c=>PR.find(p=>p.codigo.toLowerCase()===String(c).trim().toLowerCase());
-const pref=id=>doc(fdb,"users",uid,"produtos",Strinh(id));
+const pref=id=>doc(fdb,"users",uid,"produtos",String(id));
 const adj=(c,n)=>{const p=prod(c);if(p&&n)updateDoc(pref(p.id),{qtd:increment(n)})};
 const comp=f=>new Promise(r=>{const i=new Image(),u=URL.createObjectURL(f);i.onload=()=>{const k=Math.min(1,480/Math.max(i.width,i.height)),c=document.createElement("canvas");c.width=Math.round(i.width*k);c.height=Math.round(i.height*k);c.getContext("2d").drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);r(c.toDataURL("image/jpeg",.7))};i.onerror=()=>r("");i.src=u});
 const pfil=()=>{const k=pq.toLowerCase();return PR.filter(p=>(p.nome+p.codigo+(p.var||"")).toLowerCase().includes(k)).sort((a,b)=>a.nome.localeCompare(b.nome))};
@@ -350,7 +350,7 @@ if(!k||!n||isNaN(pre)||pre<0){alert("Preencha código, nome e preço.");return}
 const o=prod(k);if(o&&o.id!==ed2){alert("Já existe um produto com esse código.");return}
 const id=ed2||Date.now();setDoc(pref(id),{id,codigo:k,nome:n,preco:pre,qtd:Math.max(0,parseInt(g("p-qtd"))||0),foto:pf,var:vari}).catch(e=>alert("Erro ao salvar: "+e.message));$("pm").hidden=true};
 $("lg").onclick=async()=>{$("lerr").textContent="";try{await signInWithEmailAndPassword(auth,$("em").value.trim(),$("sn").value)}catch(e){$("lerr").textContent="E-mail ou senha incorretos."}};
-$("fp").onclick=async()=>{const em=$("em").value.trim();if(!em){$("lerr").textContent="Digite seu e-mail para recuperar a senha.";return}$("lerr").textContent="";tyy{await sendPasswordResetEmail(auth,em);alert("Enviamos um e-mail para redefinir a senha.")}catch(e){$("lerr").textContent="Não foi possível enviar. Confira o e-mail."}};
+$("fp").onclick=async()=>{const em=$("em").value.trim();if(!em){$("lerr").textContent="Digite seu e-mail para recuperar a senha.";return}$("lerr").textContent="";try{await sendPasswordResetEmail(auth,em);alert("Enviamos um e-mail para redefinir a senha.")}catch(e){$("lerr").textContent="Não foi possível enviar. Confira o e-mail."}};
 function migra(){if(mig)return;mig=true;let L=[];try{L=JSON.parse(localStorage.getItem("vendas-lingerie-v1")||"[]")}catch(e){}
 if(L.length&&confirm("Encontrei "+L.length+" vendas salvas neste aparelho. Enviar para a nuvem?")){Promise.all(L.map(put)).then(()=>{try{localStorage.removeItem("vendas-lingerie-v1")}catch(e){}})}}
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();defP=e;if(tab==="i")render()});
